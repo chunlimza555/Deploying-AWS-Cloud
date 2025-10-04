@@ -1,0 +1,30 @@
+1. Project Overview
+This is a PHP-based "Gorgeous Cupcakes" web application with a MySQL database, separated into frontend and backend microservices. It’s hosted on AWS with secure communication and isolated networks.
+
+2. Prerequisites
+You need an AWS account, AWS CLI (for command-line management), and a CloudFormation template to set up the infrastructure on AWS.
+
+3. Application Structure
+The project includes folders for Controller, Model, View, and Index.php, plus a README and SQL file for database setup.
+
+4. Deployment Instructions on AWS with CloudFormation
+Upload the CloudFormation Template: Use the AWS Management Console to upload the template and create a stack.
+Configure Stack Parameters: Enter required details such as key pair, subnet IDs, and security group IDs.
+Deploy the Stack: Start the deployment to provision the web application and database on AWS.
+5. Post-Deployment Configuration
+After deployment:
+
+Initialize the Database using the SQL file.
+Configure HTTPS Certificate to secure frontend communication.
+6. Updating the Infrastructure
+To make updates, modify the CloudFormation template, then re-upload it and update the stack.
+
+7. Deleting the Resources
+To remove the resources, delete the CloudFormation stack in the AWS Console, which will clean up all related resources.
+
+8. Troubleshooting Common Issues
+Guidelines for troubleshooting:
+
+Template Errors: Ensure all parameters are defined correctly.
+SSL Certificate: Verify HTTPS setup.
+Database Connection: Check security group settings for database access.

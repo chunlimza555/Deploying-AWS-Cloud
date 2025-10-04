@@ -1,0 +1,141 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: Creates RDS database with MySQL
+
+Metadata:
+   AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - 
+        Label: 
+          default: VPC Stack Name
+        Parameters: 
+          - LimVpcStackName
+      - 
+        Label: 
+          default: Database Parameters
+        Parameters:
+          - LimDatabaseInstanceIdentifier
+          - LimDatabaseName
+          - LimDatabaseUser
+          - LimDatabasePassword
+          - LimDatabaseAllocatedStorage
+          - LimDatabaseInstanceClass
+          - LimMultiAZDatabase
+
+Parameters:
+  LimVpcStackName: 
+    Description: The name of the VPC stack that exports values
+    Type: String
+
+  LimDatabaseName:
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+    ConstraintDescription: Begin with a letter, and only contain letters and numbers
+    Default: Limdb
+    Description: MySQL database name
+    MaxLength: 64
+    MinLength: 1
+    Type: String
+
+  LimDatabaseUser:
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+    ConstraintDescription: Begin with a letter, and only contain letters and numbers
+    Default: admin
+    Description: DB username
+    MaxLength: 16
+    MinLength: 1
+    NoEcho: true 
+    Type: String
+
+  LimDatabasePassword:
+    AllowedPattern: '[a-zA-Z0-9]*'
+    ConstraintDescription: only contain letters and numbers
+    Default: Password123
+    Description: DB password
+    MaxLength: 41
+    MinLength: 8
+    NoEcho: true 
+    Type: String
+
+  LimDatabaseBackupRetention:
+    ConstraintDescription: DB backup retention period
+    Default: 0 # 0 = do not do backup
+    Description: Number of days for which automatic DB snapshots are backed up
+    MaxValue: 35
+    MinValue: 0
+    Type: Number
+
+  LimDatabaseInstanceIdentifier:
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*' # only allows letters and numbers
+    ConstraintDescription: Begin with a letter, and only contain letters and numbers
+    Default: mysqldb # Enter version of MySQL
+    Description: DB instance identifier name
+    MaxLength: 60 # find in AWS
+    MinLength: 1
+    Type: String
+
+  LimDatabaseAllocatedStorage:
+    ConstraintDescription: Size must be between 5 and 1024 GB
+    Default: 200
+    Description: DB size in GB
+    MaxValue: 65536
+    MinValue: 5
+    Type: Number
+
+  LimDatabaseInstanceClass:
+    AllowedValues:
+      - db.t1.micro
+      - db.t2.micro
+      - db.t3.micro
+      - db.m1.small
+      - db.m1.medium
+      - db.m1.large
+    ConstraintDescription: Must select a valid database instance type
+    Default: db.t3.micro
+    Description: DB instance type
+    Type: String
+
+  LimMultiAZDatabase:
+    AllowedValues:
+      - true
+      - false
+    ConstraintDescription: true or false
+    Default: false
+    Description: Multi-AZ MySQL Amazon RDS Database
+    Type: String
+
+Resources:
+  LimDatabaseSubnetGroup:  
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet group for RDS database
+      SubnetIds:
+        - Fn::ImportValue: !Sub ${LimVpcStackName}-LimPrivateSubnet
+        - Fn::ImportValue: !Sub ${LimVpcStackName}-LimPrivateSubnet2
+      Tags:
+        - Key: Name
+          Value: database subnets
+          
+  LimDatabaseInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AllocatedStorage: !Ref LimDatabaseAllocatedStorage
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      DBInstanceClass: !Ref LimDatabaseInstanceClass
+      DBInstanceIdentifier: !Ref LimDatabaseInstanceIdentifier
+      DBName: !Ref LimDatabaseName
+      MasterUsername: !Ref LimDatabaseUser
+      MasterUserPassword: !Ref LimDatabasePassword
+      MultiAZ: !Ref LimMultiAZDatabase
+      VPCSecurityGroups:
+        - Fn::ImportValue: !Sub ${LimVpcStackName}-LimDBSG
+      Engine: mysql
+      EngineVersion: 8.0.36
+      BackupRetentionPeriod: !Ref LimDatabaseBackupRetention
+      DBSubnetGroupName: !Ref LimDatabaseSubnetGroup
+
+Outputs:
+  LimDatabaseInstance: 
+    Description: Database ID
+    Export:
+      Name: !Sub ${AWS::StackName}:LimDatabaseInstance
+    Value: !Ref LimDatabaseInstance

@@ -1,0 +1,122 @@
+     This README provides step-by-step instructions to deploy a complete cloud infrastructure using AWS CloudFormation templates. The setup includes creating a Virtual Private Cloud (VPC), EC2 instances, RDS (Relational Database Service), and Elastic IP resources to deploy a LAMP stack application.
+
+Prerequisites
+1. AWS CLI: Ensure you have the AWS CLI installed and configured with necessary permissions.
+2. CloudFormation Templates: Obtain the CloudFormation templates for VPC, EC2, RDS, and Elastic IP.
+3. Project Files: Ensure you have the project files (PHP application, database, etc.) to deploy on the EC2 instance.
+
+
+Deployment Steps
+
+1. Create VPC with Public and Private Subnets
+	1. Navigate to AWS CloudFormation Console:
+		In the AWS Management Console, go to CloudFormation.
+		Select Create Stack and Upload a template file.
+	2. Upload the VPC Template:
+		Choose the ma_vpc_template.yaml file and click Next.
+	3. Set Stack Details:
+		Assign a stack name (e.g., LimVPCStack).
+		Provide values for parameters such as VPC CIDR block and subnet CIDR ranges.
+	4. Configure Options and Review:
+		Set stack options as desired (e.g., tags).
+		Review settings, then click Create Stack.
+	5. Wait for VPC Stack Creation:
+		Wait until the VPC stack status changes to CREATE_COMPLETE.
+2. Deploy RDS (MySQL Database)
+	1. Upload the RDS Template:
+		In CloudFormation, select Create Stack and upload ma_rds_template.yaml.
+	2. Configure RDS Parameters:
+		Set the database name, username, password, and allocated storage size.
+	3. Specify Subnet Group and Security Group:
+		Link the RDS to private subnets and security groups created in the VPC stack.
+	4. Launch the RDS Stack:
+		Review configurations, then launch the stack.
+	5. Wait for RDS Deployment:
+		Wait for CREATE_COMPLETE status.
+3. Create and Deploy EC2 Instance
+	1. Upload the EC2 Template:
+		In CloudFormation, upload ma_ec2_template.yaml.
+	2. Configure EC2 Parameters:
+		Set parameters like instance type, key pair, and security group ID.
+	3. Launch the EC2 Stack:
+		Review and launch the EC2 instance stack.
+	4. Access the EC2 Instance:
+		After the stack is created, connect to the instance using SSH to install the PHP application.
+4. Associate Elastic IP
+	1. Upload the Elastic IP Template:
+		Use the ma_eip_template.yaml file in CloudFormation.
+	2. Associate Elastic IP to EC2:
+		Link the Elastic IP to your EC2 instance using the template.
+	3. Review and Deploy:
+		Confirm the association and complete the setup.
+
+
+Here is the step by step to deploy the website in AWS CLI
+Step 1
+ 	# install the necessary program to upload file 
+ 	sudo su
+ 	sudo dnf update -y
+ 	sudo dnf install -y httpd wget php-fpm php-mysqli php-json php php-devel git
+	sudo dnf install -y mariadb105-server
+
+Step 2
+	#enable the httpd and the mariadb in cloud
+	systemctl enable httpd
+	systemctl start httpd
+	sudo systemctl enable mariadb
+	sudo systemctl start mariadb
+
+Step 3 
+	#Changing the directory to /var/www/html and make a directory
+	cd /var/www/html
+	mkdir limwebsite
+
+
+Step 4 
+	#Changing the directory and get the file from github 
+	cd limwebsite
+	wget https://github.com/chunlimza555/gorgeous_cupcakes_main/archive/refs/heads/main.zip
+	This process will download zip file from GitHub into cloud
+
+Step 5 
+	#unzip the file and change the directory to the unzipped file
+	unzip main.zip
+	cd gorgeous_cupcakes_main-main
+
+
+Step 6 
+	#Created the databases to deploy the website 
+	show databases; (this process to check the databases)
+	mysql --password=Password123 --user=admin --host=mysqldb.css8g2bj5ie5.us-east-1.rds.amazonaws.com
+	#You need to copy your Endpoint & Port in your RDS
+	CREATE database limwebsite;
+Step 7
+	# After creating the database, using the information as below:
+	use limwebsite;
+	source /var/www/html/limwebsite/gorgeous_cupcakes_main-main/gorgeous_cupcakes_v1.sql
+	#After that u can use CTRL + C to exit the database
+Step 8 
+	#Changing the directory to the model of gorgeous_cupcakes and change the database.php 
+ 	cd /var/www/html/limwebsite/gorgeous_cupcakes_main-main/model
+	sudo nano database.php
+	#Editing your host, user, and password following the REAME.txt
+Step 8 
+	#Changing the directory to the model of gorgeous_cupcakes and change the database.php 
+ 	cd /var/www/html/limwebsite/gorgeous_cupcakes_main-main/model
+	sudo nano database.php
+	#Editing your host, user, and password following the REAME.txt
+	#Then, typing Ctrl + O to save file and typing Ctrl + X to exist the file.
+Step 9
+	#Access to the limwebsite by using the Elastic IP 
+	#Find the Elastic IP on the EC2 page click your instance name
+	#Then, copy your Elastic IP and following the below information
+	# Link: http://Your Elastic IP /limwebsite/gorgeous_cupcakes_main-main/
+	#Then, using the username and password as below:
+	username: admin
+ 	password: password
+	#Now you can deploy your website!!
+
+
+
+
+

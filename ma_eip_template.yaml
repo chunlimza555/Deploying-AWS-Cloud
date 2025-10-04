@@ -1,0 +1,29 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: Creates an Elastic IP and associates it with the EC2 instance using the export value.
+
+Parameters:
+  LimEc2StackName:
+    Description: The stack name of the EC2 instance
+    Type: String
+    
+
+Resources:
+  LimElasticIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: LimElasticIP
+      InstanceId: 
+        Fn::ImportValue: !Sub ${LimEc2StackName}-LimInstanceId
+  
+    
+
+Outputs:
+  LimElasticIP:
+    Description: The allocated Elastic IP address
+    Value: !Ref LimElasticIP
+    Export:
+      Name: !Sub "${AWS::StackName}-LimElasticIP"

@@ -1,0 +1,238 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: Creates VPC with public and private subnets and separate security groups for SSH, HTTP, and HTTPS traffic.
+
+Metadata:
+  AWS::CloudFormation::Interface: 
+    ParameterGroups:
+      - 
+        Label: 
+          default: "VPC CIDR"
+        Parameters: 
+          - LimVpcCIDR
+      - 
+        Label: 
+          default: "Subnet CIDR"
+        Parameters:
+          - LimPublicSubnetCIDR
+          - LimPrivateSubnetCIDR
+          - LimPrivateSubnet2CIDR
+      - 
+        Label: 
+          default: "SSH CIDR"
+        Parameters: 
+          - LimSSHIP
+
+Parameters:
+  LimVpcCIDR:
+    Default: 10.0.0.0/16
+    Description: Enter IP range (CIDR notation) for this VPC
+    Type: String
+
+  LimPublicSubnetCIDR:
+    Default: 10.0.0.0/24
+    Description: Enter IP range (CIDR notation) for public subnet
+    Type: String
+
+  LimPrivateSubnetCIDR:
+    Default: 10.0.1.0/24
+    Description: Enter IP range (CIDR notation) for private subnet
+    Type: String
+
+  LimPrivateSubnet2CIDR:
+    Default: 10.0.2.0/24
+    Description: Enter IP range (CIDR notation) for private subnet
+    Type: String
+
+  LimSSHIP:
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
+    ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
+    Default: 0.0.0.0/0
+    Description: The IP address range that can be used to access the web server using SSH.
+    MaxLength: '18'
+    MinLength: '9'
+    Type: String
+
+Resources:
+  LimVPC:
+    Type: AWS::EC2::VPC
+    Properties: 
+      CidrBlock: !Ref LimVpcCIDR
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      InstanceTenancy: default
+      Tags: 
+        - Key: Name
+          Value: Limvpc
+  
+  LimInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: LimIGW
+
+  LimInternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref LimInternetGateway
+      VpcId: !Ref LimVPC
+
+  LimPublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      CidrBlock: !Ref LimPublicSubnetCIDR
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: LimPublicSubnet
+      VpcId: !Ref LimVPC
+
+  LimPublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: LimPublicRT
+      VpcId: !Ref LimVPC
+
+  LimPublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref LimInternetGateway
+      RouteTableId: !Ref LimPublicRouteTable
+
+  LimPublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref LimPublicRouteTable
+      SubnetId: !Ref LimPublicSubnet
+
+  LimPrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [ 0, !GetAZs  '' ]
+      CidrBlock: !Ref LimPrivateSubnetCIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: LimPrivateSubnet
+      VpcId: !Ref LimVPC
+  
+  LimPrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [ 1, !GetAZs  '' ]
+      CidrBlock: !Ref LimPrivateSubnet2CIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: LimPrivateSubnet2
+      VpcId: !Ref LimVPC
+
+  LimSSHSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security Group for SSH
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref LimSSHIP
+      Tags:
+        - Key: Name
+          Value: LimSSHSG
+      VpcId: !Ref LimVPC
+
+  LimHTTPSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security Group for HTTP
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: LimHTTPSG
+      VpcId: !Ref LimVPC
+
+  LimHTTPSSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security Group for HTTPS
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: LimHTTPSSG
+      VpcId: !Ref LimVPC
+
+  LimDBSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security Group for MySQL Database
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: LimDBSG
+      VpcId: !Ref LimVPC
+
+Outputs:
+  LimVPC:
+    Description: VPC ID
+    Value: !Ref LimVPC
+    Export:
+      Name: !Sub "${AWS::StackName}-LimVPC"
+
+  LimPublicSubnet:
+    Description: Public Subnet ID
+    Value: !Ref LimPublicSubnet
+    Export:
+      Name: !Sub "${AWS::StackName}-LimPublicSubnet"
+
+  LimPrivateSubnet:
+    Description: Private Subnet ID
+    Value: !Ref LimPrivateSubnet
+    Export:
+      Name: !Sub "${AWS::StackName}-LimPrivateSubnet"
+
+  LimPrivateSubnet2:
+    Description: Private Subnet2 ID
+    Value: !Ref LimPrivateSubnet2
+    Export:
+      Name: !Sub "${AWS::StackName}-LimPrivateSubnet2"
+
+  LimSSHSG:
+    Description: SSH Security Group ID
+    Value: !Ref LimSSHSG
+    Export:
+      Name: !Sub "${AWS::StackName}-LimSSHSG"
+
+  LimHTTPSG:
+    Description: HTTP Security Group ID
+    Value: !Ref LimHTTPSG
+    Export:
+      Name: !Sub "${AWS::StackName}-LimHTTPSG"
+
+  LimHTTPSSG:
+    Description: HTTPS Security Group ID
+    Value: !Ref LimHTTPSSG
+    Export:
+      Name: !Sub "${AWS::StackName}-LimHTTPSSG"
+
+  LimDBSG:
+    Description: MySQL Database Security Group ID
+    Value: !Ref LimDBSG
+    Export:
+      Name: !Sub "${AWS::StackName}-LimDBSG"

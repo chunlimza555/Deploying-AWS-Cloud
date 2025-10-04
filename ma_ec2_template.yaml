@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: Creates an EC2 instance with a key pair for SSH access
+
+Parameters:
+  LimVpcStackName:
+    Description: Name of the VPC stack that exports values
+    Type: String
+
+Resources:
+  LimKeyPair: # Key pair
+    Type: AWS::EC2::KeyPair
+    Properties:
+      KeyName: Lim-key-pair
+
+  LimEC2: # EC2 Instance
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t3.micro # Free tier eligible instance type
+      SubnetId:
+        Fn::ImportValue: !Sub "${LimVpcStackName}-LimPublicSubnet"
+      SecurityGroupIds:
+        - Fn::ImportValue: !Sub "${LimVpcStackName}-LimSSHSG"
+        - Fn::ImportValue: !Sub "${LimVpcStackName}-LimHTTPSG"
+        - Fn::ImportValue: !Sub "${LimVpcStackName}-LimHTTPSSG"
+        - Fn::ImportValue: !Sub "${LimVpcStackName}-LimDBSG"
+      KeyName: !Ref LimKeyPair # Use existing key pair
+      ImageId: ami-012967cc5a8c9f891 # Make sure this AMI ID is available in your region
+      Tags:
+        - Key: Name
+          Value: Lim-webpage-ec2
+
+Outputs:
+  LimInstanceId:
+    Description: Instance ID
+    Value: !Ref LimEC2
+    Export:
+      Name: !Sub "${AWS::StackName}-LimInstanceId"
